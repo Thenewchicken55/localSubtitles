@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import shutil
 import sys
 import time
@@ -193,6 +194,12 @@ def process_file(
             extract_audio(input_path, temp_wav)
             print(f"Audio extracted ({temp_wav.stat().st_size / 1024:.0f} KB).")
 
+            from localsub.transcribe import load_model
+
+            print("Loading model (first download may take a few minutes)...", flush=True)
+            model = load_model(args.model, args.device, args.compute_type)
+            print("Model loaded.")
+
             with tqdm(total=100, desc="Transcribing", unit="%", leave=True) as pbar:
                 def on_progress(pct: float):
                     pbar.n = int(pct * 100)
@@ -200,9 +207,7 @@ def process_file(
 
                 segments_raw, detected_lang, duration = transcribe(
                     audio_path=temp_wav,
-                    model_name=args.model,
-                    device=args.device,
-                    compute_type=args.compute_type,
+                    model=model,
                     language=args.language,
                     vad_filter=not args.no_vad,
                     beam_size=args.beam_size,
@@ -247,6 +252,8 @@ def process_file(
 
 
 def main(argv: list[str] | None = None) -> int:
+    os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
     parser = build_parser()
     args = parser.parse_args(argv)
 

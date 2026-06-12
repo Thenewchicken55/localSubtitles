@@ -2,6 +2,23 @@ from pathlib import Path
 
 from faster_whisper import WhisperModel
 
+_MODEL_CACHE: dict[str, WhisperModel] = {}
+
+
+def load_model(
+    model_name: str = "large-v3-turbo",
+    device: str = "auto",
+    compute_type: str = "default",
+) -> WhisperModel:
+    key = f"{model_name}:{device}:{compute_type}"
+    if key not in _MODEL_CACHE:
+        _MODEL_CACHE[key] = WhisperModel(
+            model_name,
+            device=device,
+            compute_type=compute_type,
+        )
+    return _MODEL_CACHE[key]
+
 
 def transcribe(
     audio_path: str | Path,
@@ -13,12 +30,10 @@ def transcribe(
     beam_size: int = 5,
     word_timestamps: bool = True,
     progress_callback=None,
+    model: WhisperModel | None = None,
 ):
-    model = WhisperModel(
-        model_name,
-        device=device,
-        compute_type=compute_type,
-    )
+    if model is None:
+        model = load_model(model_name, device, compute_type)
 
     segments, info = model.transcribe(
         str(audio_path),
