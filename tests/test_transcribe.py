@@ -24,13 +24,13 @@ class TestTranscribe:
         mock_model.transcribe.return_value = ([mock_segment], mock_info)
 
         audio_path = Path("/tmp/test.wav")
-        segments, lang = transcribe(audio_path, model_name="base", verbose=True)
+        segments, lang, duration = transcribe(audio_path, model_name="base")
 
         assert lang == "en"
-        seg_list = list(segments)
-        assert len(seg_list) == 1
-        assert seg_list[0].start == 0.0
-        assert seg_list[0].text == "Hello world."
+        assert duration == 120.0
+        assert len(segments) == 1
+        assert segments[0].start == 0.0
+        assert segments[0].text == "Hello world."
 
         mock_whisper_class.assert_called_once_with(
             "base",
@@ -53,7 +53,7 @@ class TestTranscribe:
 
         mock_model.transcribe.return_value = ([], mock_info)
 
-        segments, lang = transcribe(
+        segments, lang, duration = transcribe(
             "/tmp/test.wav",
             model_name="large-v3",
             device="cpu",
@@ -64,6 +64,7 @@ class TestTranscribe:
         )
 
         assert lang == "fr"
+        assert duration == 60.0
 
         mock_whisper_class.assert_called_once_with(
             "large-v3",
@@ -75,3 +76,36 @@ class TestTranscribe:
         assert kwargs["language"] == "fr"
         assert kwargs["vad_filter"] is False
         assert kwargs["beam_size"] == 3
+
+    @patch("localsub.transcribe.WhisperModel")
+    def test_progress_callback(self, mock_whisper_class):
+        mock_model = MagicMock()
+        mock_whisper_class.return_value = mock_model
+
+        mock_info = MagicMock()
+        mock_info.language = "en"
+        mock_info.duration = 100.0
+
+        segments_data = []
+        for i in range(5):
+            s = MagicMock()
+            s.start = i * 20.0
+            s.end = (i + 1) * 20.0
+            s.text = f"Segment {i}"
+            segments_data.append(s)
+
+        mock_model.transcribe.return_value = (iter(segments_data), mock_info)
+
+        calls = []
+
+        def progress(pct):
+            calls.append(pct)
+
+        segments, lang, duration = transcribe(
+            "/tmp/test.wav",
+            model_name="tiny",
+            progress_callback=progress,
+        )
+
+        assert len(calls) == 5
+        assert calls[-1] == pytest.approx(1.0)

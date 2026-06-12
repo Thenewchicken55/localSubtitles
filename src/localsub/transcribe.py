@@ -10,7 +10,8 @@ def transcribe(
     language: str | None = None,
     vad_filter: bool = True,
     beam_size: int = 5,
-    verbose: bool = False,
+    word_timestamps: bool = True,
+    progress_callback=None,
 ):
     model = WhisperModel(
         model_name,
@@ -23,12 +24,16 @@ def transcribe(
         language=language,
         vad_filter=vad_filter,
         beam_size=beam_size,
+        word_timestamps=word_timestamps,
     )
 
     detected_language = info.language
-    if verbose:
-        duration = info.duration
-        print(f"Detected language: {detected_language} ({info.language_probability*100:.1f}%)")
-        print(f"Audio duration: {duration:.1f}s")
+    duration = info.duration
 
-    return segments, detected_language
+    collected = []
+    for segment in segments:
+        collected.append(segment)
+        if progress_callback:
+            progress_callback(segment.end / duration if duration > 0 else 0)
+
+    return collected, detected_language, duration
