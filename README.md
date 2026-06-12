@@ -2,13 +2,14 @@
 
 > Generate subtitles from videos entirely on your machine. Free, private, works on long videos.
 
-`localsub` is a CLI tool that transcribes video/audio files into SRT subtitles using [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — a 4x faster, 4x more memory-efficient reimplementation of OpenAI's Whisper. Everything runs locally; no data ever leaves your computer.
+`localsub` transcribes video/audio files into SRT/VTT subtitles using [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — a 4x faster, 4x more memory-efficient reimplementation of OpenAI's Whisper. Everything runs locally; no data ever leaves your computer.
 
 ## Quick Start
 
 ```bash
 pip install -r requirements.txt
-python -m localsub video.mp4
+pip install -e .
+localsub video.mp4
 ```
 
 This outputs `video.srt` next to your video.
@@ -22,43 +23,57 @@ This outputs `video.srt` next to your video.
 ## Usage
 
 ```bash
-python -m localsub <input_file> [options]
+localsub <input_file...> [options]
 ```
 
 ### Options
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `input` | — | Path to video/audio file |
-| `-o, --output` | `input.srt` | Output SRT path |
+| `input` | — | Path(s) to video/audio files (batch supported) |
+| `-o, --output` | `input.srt` | Output path (single input only) |
 | `--model` | `large-v3-turbo` | Whisper model: `tiny`, `base`, `small`, `medium`, `large-v3`, `large-v3-turbo` |
 | `--device` | `auto` | Device: `auto`, `cpu`, `cuda` |
 | `--compute-type` | `default` | `int8` (CPU), `float16` (GPU), `float32` |
 | `--language` | auto-detect | Language code (e.g. `en`, `fr`, `es`) |
 | `--no-vad` | off | Disable silence-skipping (VAD) |
 | `--beam-size` | `5` | Beam search width (higher = slower but more accurate) |
+| `--format` | `srt` | Output format: `srt`, `vtt`, or `both` |
+| `--force` | off | Re-transcribe ignoring cached results |
 | `--version` | — | Show version |
 
 ### Examples
 
 ```bash
 # Basic usage
-python -m localsub my_video.mp4
+localsub my_video.mp4
+
+# VTT format
+localsub talk.mp4 --format vtt
+
+# Both SRT and VTT
+localsub video.mp4 --format both
 
 # Specify output path
-python -m localsub talk.mp4 -o subtitles.srt
+localsub talk.mp4 -o subtitles.srt
 
 # Smaller model for faster processing on modest hardware
-python -m localsub lecture.mp4 --model base --compute-type int8
+localsub lecture.mp4 --model base --compute-type int8
 
 # Force CPU with int8 quantization
-python -m localsub video.mkv --device cpu --compute-type int8
+localsub video.mkv --device cpu --compute-type int8
 
 # French video
-python -m localsub video.mp4 --language fr
+localsub video.mp4 --language fr
 
 # Disable VAD (if speech is being incorrectly filtered)
-python -m localsub video.mp4 --no-vad
+localsub video.mp4 --no-vad
+
+# Batch process multiple videos
+localsub ep1.mp4 ep2.mp4 ep3.mp4
+
+# Re-transcribe (ignore cache)
+localsub video.mp4 --force
 ```
 
 ### Supported Input Formats
@@ -69,14 +84,18 @@ python -m localsub video.mp4 --no-vad
 ## How It Works
 
 ```
-Video file ──▶ ffmpeg extracts audio ──▶ faster-whisper transcribes ──▶ SRT file
+Video file ──▶ ffmpeg extracts audio ──▶ faster-whisper transcribes ──▶ SRT/VTT file
 ```
 
 1. **ffmpeg** extracts the audio stream to 16 kHz mono WAV
-2. **faster-whisper** transcribes with Silero VAD (skips silence automatically)
-3. Subtitles are formatted as SRT with proper line-wrapping and written to disk
+2. **faster-whisper** transcribes with word-level timestamps and Silero VAD (skips silence automatically)
+3. Subtitles are formatted with word-accurate boundaries and written to disk
 
-For long videos, VAD removes non-speech segments before transcription, saving 30–50% compute time. faster-whisper's chunked processing keeps memory under control.
+For long videos:
+- **VAD** removes non-speech segments before transcription, saving 30–50% compute time
+- **Progress bar** shows real-time transcription progress
+- **Cache** saves results to `~/.cache/localsub/` so re-running the same file is instant
+- **Audio validation** detects files with no audio stream before starting
 
 ## Model Sizes
 
@@ -94,12 +113,19 @@ For long videos, VAD removes non-speech segments before transcription, saving 30
 ```bash
 # Install dev dependencies
 pip install -r requirements.txt
+pip install -e .
 
 # Run tests
 pytest
 
 # Run tests with coverage
 pytest --cov=localsub
+
+# Lint
+ruff check src/
+
+# Setup pre-commit hooks
+pre-commit install
 ```
 
 ## Why faster-whisper?
@@ -110,6 +136,7 @@ pytest --cov=localsub
 | Memory | High (PyTorch) | **4x less** (CTranslate2) |
 | VAD | None | **Built-in** (Silero) |
 | Long audio | Prone to OOM | **Chunked, efficient** |
+| Word timestamps | Basic | **Per-word with start/end** |
 | License | MIT | MIT |
 
 Benchmarks against openai-whisper on 1 hour audio (from community testing):
