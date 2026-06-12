@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "localsub"
+version = "0.1.0"
+description = "Generate subtitles from video/audio files using local AI"
+requires-python = ">=3.10"
+dependencies = [
+    "faster-whisper>=1.1.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
