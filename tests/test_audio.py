@@ -1,6 +1,6 @@
 import subprocess
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 import pytest
 from localsub.audio import check_ffmpeg, extract_audio
@@ -35,12 +35,16 @@ class TestCheckFfmpeg:
         assert result is None
 
 
+FFPROBE_OK_RESULT = subprocess.CompletedProcess([], 0, stdout="ffprobe version ...")
+FFPROBE_HAS_AUDIO = subprocess.CompletedProcess([], 0, stdout='{"streams": [{"codec_type": "audio"}]}')
+FFMPEG_OK_RESULT = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+FFMPEG_FAIL_RESULT = subprocess.CompletedProcess([], 1, stdout="", stderr="Invalid data found")
+
+
 class TestExtractAudio:
     @patch("localsub.audio.subprocess.run")
     def test_successful_extraction(self, mock_run, tmp_path):
-        mock_run.return_value.returncode = 0
-        mock_run.return_value.stdout = ""
-        mock_run.return_value.stderr = ""
+        mock_run.side_effect = [FFPROBE_OK_RESULT, FFPROBE_HAS_AUDIO, FFMPEG_OK_RESULT]
 
         input_path = tmp_path / "input.mp4"
         input_path.write_text("fake")
@@ -50,8 +54,8 @@ class TestExtractAudio:
         result = extract_audio(input_path, output_path)
         assert result == output_path
 
-        mock_run.assert_called_once()
-        args = mock_run.call_args[0][0]
+        ffmpeg_call = mock_run.call_args_list[-1]
+        args = ffmpeg_call[0][0]
         assert "ffmpeg" in args
         assert "-ar" in args
         assert "16000" in args
@@ -60,7 +64,7 @@ class TestExtractAudio:
 
     @patch("localsub.audio.subprocess.run")
     def test_output_not_created(self, mock_run, tmp_path):
-        mock_run.return_value.returncode = 0
+        mock_run.side_effect = [FFPROBE_OK_RESULT, FFPROBE_HAS_AUDIO, FFMPEG_OK_RESULT]
         input_path = tmp_path / "input.mp4"
         input_path.write_text("fake")
         output_path = tmp_path / "nonexistent.wav"
@@ -80,8 +84,7 @@ class TestExtractAudio:
 
     @patch("localsub.audio.subprocess.run")
     def test_ffmpeg_failure(self, mock_run, tmp_path):
-        mock_run.return_value.returncode = 1
-        mock_run.return_value.stderr = "Invalid data found"
+        mock_run.side_effect = [FFPROBE_OK_RESULT, FFPROBE_HAS_AUDIO, FFMPEG_FAIL_RESULT]
         input_path = tmp_path / "input.mp4"
         input_path.write_text("fake")
         output_path = tmp_path / "output.wav"

@@ -1,5 +1,5 @@
+import json
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -12,11 +12,47 @@ def check_ffmpeg() -> str | None:
             timeout=10,
         )
         if result.returncode == 0:
-            first_line = result.stdout.splitlines()[0]
-            return first_line
+            return result.stdout.splitlines()[0]
         return None
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
+
+
+def check_ffprobe() -> bool:
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def has_audio_stream(input_path: str | Path) -> bool:
+    input_path = Path(input_path)
+    if not check_ffprobe():
+        return True
+
+    cmd = [
+        "ffprobe",
+        "-v", "quiet",
+        "-print_format", "json",
+        "-show_streams",
+        "-select_streams", "a",
+        str(input_path),
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            return True
+        data = json.loads(result.stdout)
+        streams = data.get("streams", [])
+        return len(streams) > 0
+    except (json.JSONDecodeError, FileNotFoundError, subprocess.TimeoutExpired):
+        return True
 
 
 def extract_audio(
@@ -27,6 +63,9 @@ def extract_audio(
 ) -> Path:
     input_path = Path(input_path)
     output_path = Path(output_path)
+
+    if not has_audio_stream(input_path):
+        raise RuntimeError(f"No audio stream found in: {input_path}")
 
     cmd = [
         "ffmpeg",
@@ -40,15 +79,9 @@ def extract_audio(
     ]
 
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=86400)
     except FileNotFoundError:
-        raise RuntimeError(
-            "ffmpeg not found. Install ffmpeg and ensure it is on your PATH."
-        )
+        raise RuntimeError("ffmpeg not found. Install ffmpeg and ensure it is on your PATH.")
 
     if result.returncode != 0:
         raise RuntimeError(
