@@ -12,11 +12,22 @@ def load_model(
 ) -> WhisperModel:
     key = f"{model_name}:{device}:{compute_type}"
     if key not in _MODEL_CACHE:
-        _MODEL_CACHE[key] = WhisperModel(
-            model_name,
-            device=device,
-            compute_type=compute_type,
-        )
+        try:
+            _MODEL_CACHE[key] = WhisperModel(
+                model_name,
+                device=device,
+                compute_type=compute_type,
+            )
+        except Exception:
+            if device == "auto":
+                print("GPU not available, falling back to CPU (int8).", flush=True)
+                _MODEL_CACHE[key] = WhisperModel(
+                    model_name,
+                    device="cpu",
+                    compute_type="int8",
+                )
+            else:
+                raise
     return _MODEL_CACHE[key]
 
 
