@@ -228,7 +228,12 @@ def process_file(
             print("\nInterrupted.", file=sys.stderr)
             return 130
         except Exception as e:
-            print(f"\nError during transcription: {e}", file=sys.stderr)
+            msg = str(e)
+            print(f"\nError during transcription: {msg}", file=sys.stderr)
+            if "cublas" in msg.lower() or "cuda" in msg.lower():
+                print(file=sys.stderr)
+                print("Tip: Your GPU/CUDA setup is incomplete. Try CPU mode:", file=sys.stderr)
+                print(f"  localsub \"{input_path.name}\" --device cpu --compute-type int8", file=sys.stderr)
             return 1
         finally:
             if temp_dir.exists():

@@ -28,6 +28,20 @@ Thumbs.db
 *.wav
 *.srt
 *.vtt
+# Large media files (user videos should never be tracked)
+*.mp4
+*.mkv
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.m4v
+*.mp3
+*.flac
+*.aac
+*.ogg
+*.m4a
 
 # Whisper models downloaded at runtime
 ~/.cache/whisper/
