@@ -1,5 +1,11 @@
 from pathlib import Path
-from localsub.subtitle import _format_timestamp, segments_to_srt, write_srt
+from localsub.subtitle import (
+    _format_timestamp,
+    _format_vtt_timestamp,
+    segments_to_srt,
+    segments_to_vtt,
+    write_subtitles,
+)
 
 
 class TestFormatTimestamp:
@@ -17,6 +23,14 @@ class TestFormatTimestamp:
 
     def test_rounding(self):
         assert _format_timestamp(1.9999) in ("00:00:02,000", "00:00:01,999")
+
+
+class TestFormatVttTimestamp:
+    def test_zero(self):
+        assert _format_vtt_timestamp(0) == "00:00:00.000"
+
+    def test_basic_seconds(self):
+        assert _format_vtt_timestamp(1.5) == "00:00:01.500"
 
 
 class TestSegmentsToSrt:
@@ -49,11 +63,41 @@ class TestSegmentsToSrt:
         result = segments_to_srt(sample_segments[:1])
         assert "Cómo estás? 你好吗？" in result
 
+    def test_word_refined_boundary(self):
+        class FakeWord:
+            def __init__(self, start, end, word):
+                self.start = start
+                self.end = end
+                self.word = word
 
-class TestWriteSrt:
+        class FakeSegment:
+            def __init__(self):
+                self.start = 0.0
+                self.end = 10.0
+                self.text = "Refined"
+                self.words = [
+                    FakeWord(0.5, 1.0, "Refined"),
+                ]
+
+        result = segments_to_srt([FakeSegment()])
+        assert "00:00:00,500 --> 00:00:01,000" in result
+
+
+class TestSegmentsToVtt:
+    def test_basic(self, sample_segments):
+        result = segments_to_vtt(sample_segments)
+        assert result.startswith("WEBVTT")
+        assert "00:00:00.000 --> 00:00:02.500" in result
+        assert "Hello world." in result
+
+    def test_empty(self):
+        assert segments_to_vtt([]) == "WEBVTT\n"
+
+
+class TestWriteSubtitles:
     def test_writes_utf8_bom(self, tmp_path):
         output = tmp_path / "out.srt"
-        result = write_srt("1\n00:00:01,000 --> 00:00:02,000\nTest\n", output)
+        result = write_subtitles("1\n00:00:01,000 --> 00:00:02,000\nTest\n", output)
         assert result == output
         assert output.exists()
         content = output.read_bytes()
@@ -61,5 +105,5 @@ class TestWriteSrt:
 
     def test_returns_path(self, tmp_path):
         output = tmp_path / "out.srt"
-        result = write_srt("content", output)
+        result = write_subtitles("content", output)
         assert result == output
