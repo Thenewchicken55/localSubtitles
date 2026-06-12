@@ -1,4 +1,3 @@
-import os
 import re
 import tempfile
 from pathlib import Path
@@ -45,7 +44,7 @@ SRT_TIMECODE_RE = re.compile(
 
 
 def validate_srt(content: str) -> bool:
-    lines = [l.strip() for l in content.strip().splitlines() if l.strip()]
+    lines = [line.strip() for line in content.strip().splitlines() if line.strip()]
     if not lines:
         return False
     i = 0

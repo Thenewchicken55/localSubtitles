@@ -30,6 +30,7 @@ def sample_segments():
             self.start = start
             self.end = end
             self.text = text
+            self.words = []
 
     return [
         FakeSegment(0.0, 2.5, "Hello world."),
