@@ -158,13 +158,22 @@ C:\Users\eliaa\Code\localSubtitles\
 
 ---
 
-## 7. Future Enhancements (post-MVP)
+## 7. Completed Milestones
 
-- [ ] **Batch mode**: Process multiple videos in one command
-- [ ] **Crash recovery**: Save interim results, resume on interrupt
-- [ ] **VTT support**: Additional subtitle format
+- [x] **Batch mode**: Process multiple videos in one command
+- [x] **Crash recovery**: Save interim results to ~/.cache/localsub, resume on re-run
+- [x] **VTT support**: SRT and VTT output, --format srt|vtt|both
+- [x] **Word-level timestamps**: Word-accurate subtitle boundaries via faster-whisper
+- [x] **Progress bar**: Real-time tqdm progress during transcription
+- [x] **Audio validation**: Check for audio stream before starting
+- [x] **Console entry point**: `localsub` command via pip install
+- [x] **CI pipeline**: GitHub Actions testing on Python 3.10-3.13
+- [x] **Pre-commit hooks**: Ruff lint/format, trailing whitespace, mypy
+- [x] **70 unit tests**: Full coverage across all modules
+
+## 8. Future Enhancements
+
 - [ ] **Translation**: Translate subtitles to another language
-- [ ] **Word-level timestamps**: More precise subtitle sync
 - [ ] **Burn-in**: Optional hardcode subtitles into video via ffmpeg
 - [ ] **Diarization**: Label speakers (requires WhisperX)
 - [ ] **GUI**: Simple web UI or Tkinter frontend
