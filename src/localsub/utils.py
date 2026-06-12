@@ -17,6 +17,10 @@ def get_output_srt_path(input_path: str | Path) -> Path:
     return Path(input_path).with_suffix(".srt")
 
 
+def get_output_vtt_path(input_path: str | Path) -> Path:
+    return Path(input_path).with_suffix(".vtt")
+
+
 def create_temp_dir() -> Path:
     return Path(tempfile.mkdtemp(prefix="localsub_"))
 
