@@ -2,6 +2,8 @@
 
 > Generate subtitles from videos entirely on your machine. Free, private, works on long videos.
 
+[![asciicast](https://img.shields.io/badge/asciicast-demo-green.svg)](https://asciinema.org/a/REPLACE_ME)
+
 `localsub` transcribes video/audio files into SRT/VTT subtitles using [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — a 4x faster, 4x more memory-efficient reimplementation of OpenAI's Whisper. Everything runs locally; no data ever leaves your computer.
 
 ## Quick Start
