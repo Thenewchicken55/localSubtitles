@@ -29,7 +29,16 @@ jobs:
 
       - name: Build EXE
         run: |
-          pyinstaller --onefile --name localsub --console src/localsub/cli.py
+          pyinstaller ^
+            --onefile ^
+            --name localsub ^
+            --console ^
+            --hidden-import faster_whisper ^
+            --hidden-import ctranslate2 ^
+            --hidden-import onnxruntime ^
+            --hidden-import tqdm ^
+            --collect-all faster_whisper ^
+            src/localsub/cli.py
 
       - name: Upload EXE to release
         uses: softprops/action-gh-release@v2
